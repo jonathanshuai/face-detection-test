@@ -1,41 +1,41 @@
-display_name,id,path
-Han Hyo-Joo (한효주),hhj,./images/hanhyojoo/gksgywn5.png
-Han Hyo-Joo (한효주),hhj,./images/hanhyojoo/gksgywn1.jpg
-Han Hyo-Joo (한효주),hhj,./images/hanhyojoo/gksgywn2.jpg
-Han Hyo-Joo (한효주),hhj,./images/hanhyojoo/gksgywn3.jpg
-Han Hyo-Joo (한효주),hhj,./images/hanhyojoo/gksgywn4.jpg
-Han Hyo-Joo (한효주),hhj,./images/hanhyojoo/gksgywn6.jpg
-Song Hye-Kyo (송혜교),shk,./images/songhyekyo/thdgPry4.png
-Song Hye-Kyo (송혜교),shk,./images/songhyekyo/thdgPry5.jpg
-Song Hye-Kyo (송혜교),shk,./images/songhyekyo/thdgPry3.jpg
-Song Hye-Kyo (송혜교),shk,./images/songhyekyo/thdgPry1.jpg
-Song Hye-Kyo (송혜교),shk,./images/songhyekyo/thdgPry2.jpg
-Jisoo (지수),js,./images/jisoo/jisoo13.jpg
-Jisoo (지수),js,./images/jisoo/jisoo5.jpg
-Jisoo (지수),js,./images/jisoo/jisoo1.jpg
-Jisoo (지수),js,./images/jisoo/jisoo6.jpg
-Jisoo (지수),js,./images/jisoo/jisoo11.png
-Jisoo (지수),js,./images/jisoo/jisoo8.jpg
-Jisoo (지수),js,./images/jisoo/jisoo7.jpg
-Jisoo (지수),js,./images/jisoo/jisoo12.png
-Jisoo (지수),js,./images/jisoo/jisoo10.jpg
-Jisoo (지수),js,./images/jisoo/jisoo4.png
-Jisoo (지수),js,./images/jisoo/jisoo2.jpg
-Jisoo (지수),js,./images/jisoo/jisoo3.jpg
-Jisoo (지수),js,./images/jisoo/jisoo9.png
-Seolhyun (설현),sh,./images/seolhyun/seolhyun13.png
-Seolhyun (설현),sh,./images/seolhyun/seolhyun1.png
-Seolhyun (설현),sh,./images/seolhyun/seolhyun4.jpg
-Seolhyun (설현),sh,./images/seolhyun/seolhyun6.png
-Seolhyun (설현),sh,./images/seolhyun/seolhyun10.jpg
-Seolhyun (설현),sh,./images/seolhyun/seolhyun5.jpg
-Seolhyun (설현),sh,./images/seolhyun/seolhyun2.jpg
-Seolhyun (설현),sh,./images/seolhyun/seolhyun7.jpg
-Seolhyun (설현),sh,./images/seolhyun/seolhyun8.jpg
-Seolhyun (설현),sh,./images/seolhyun/seolhyun11.jpg
-Seolhyun (설현),sh,./images/seolhyun/seolhyun12.jpg
-Seolhyun (설현),sh,./images/seolhyun/seolhyun9.jpg
-Seolhyun (설현),sh,./images/seolhyun/seolhyun3.jpg
-Yura (유라),yr,./images/yura/yura3.jpg
-Yura (유라),yr,./images/yura/yura1.jpg
-Yura (유라),yr,./images/yura/yura4.jpg
+display_name,id,path,label
+Han Hyo-Joo (한효주),hhj,./images/hanhyojoo/gksgywn5.png,0
+Han Hyo-Joo (한효주),hhj,./images/hanhyojoo/gksgywn1.jpg,0
+Han Hyo-Joo (한효주),hhj,./images/hanhyojoo/gksgywn2.jpg,0
+Han Hyo-Joo (한효주),hhj,./images/hanhyojoo/gksgywn3.jpg,0
+Han Hyo-Joo (한효주),hhj,./images/hanhyojoo/gksgywn4.jpg,0
+Han Hyo-Joo (한효주),hhj,./images/hanhyojoo/gksgywn6.jpg,0
+Song Hye-Kyo (송혜교),shk,./images/songhyekyo/thdgPry4.png,1
+Song Hye-Kyo (송혜교),shk,./images/songhyekyo/thdgPry5.jpg,1
+Song Hye-Kyo (송혜교),shk,./images/songhyekyo/thdgPry3.jpg,1
+Song Hye-Kyo (송혜교),shk,./images/songhyekyo/thdgPry1.jpg,1
+Song Hye-Kyo (송혜교),shk,./images/songhyekyo/thdgPry2.jpg,1
+Jisoo (지수),js,./images/jisoo/jisoo13.jpg,2
+Jisoo (지수),js,./images/jisoo/jisoo5.jpg,2
+Jisoo (지수),js,./images/jisoo/jisoo1.jpg,2
+Jisoo (지수),js,./images/jisoo/jisoo6.jpg,2
+Jisoo (지수),js,./images/jisoo/jisoo11.png,2
+Jisoo (지수),js,./images/jisoo/jisoo8.jpg,2
+Jisoo (지수),js,./images/jisoo/jisoo7.jpg,2
+Jisoo (지수),js,./images/jisoo/jisoo12.png,2
+Jisoo (지수),js,./images/jisoo/jisoo10.jpg,2
+Jisoo (지수),js,./images/jisoo/jisoo4.png,2
+Jisoo (지수),js,./images/jisoo/jisoo2.jpg,2
+Jisoo (지수),js,./images/jisoo/jisoo3.jpg,2
+Jisoo (지수),js,./images/jisoo/jisoo9.png,2
+Seolhyun (설현),sh,./images/seolhyun/seolhyun13.png,3
+Seolhyun (설현),sh,./images/seolhyun/seolhyun1.png,3
+Seolhyun (설현),sh,./images/seolhyun/seolhyun4.jpg,3
+Seolhyun (설현),sh,./images/seolhyun/seolhyun6.png,3
+Seolhyun (설현),sh,./images/seolhyun/seolhyun10.jpg,3
+Seolhyun (설현),sh,./images/seolhyun/seolhyun5.jpg,3
+Seolhyun (설현),sh,./images/seolhyun/seolhyun2.jpg,3
+Seolhyun (설현),sh,./images/seolhyun/seolhyun7.jpg,3
+Seolhyun (설현),sh,./images/seolhyun/seolhyun8.jpg,3
+Seolhyun (설현),sh,./images/seolhyun/seolhyun11.jpg,3
+Seolhyun (설현),sh,./images/seolhyun/seolhyun12.jpg,3
+Seolhyun (설현),sh,./images/seolhyun/seolhyun9.jpg,3
+Seolhyun (설현),sh,./images/seolhyun/seolhyun3.jpg,3
+Yura (유라),yr,./images/yura/yura3.jpg,4
+Yura (유라),yr,./images/yura/yura1.jpg,4
+Yura (유라),yr,./images/yura/yura4.jpg,4
