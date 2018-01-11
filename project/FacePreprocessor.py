@@ -6,31 +6,30 @@ import cv2
 import imutils
 from imutils import face_utils
 import dlib
+import openface
 
 #Sources:
 #https://www.pyimagesearch.com/2017/04/03/facial-landmarks-dlib-opencv-python/
 #https://www.researchgate.net/publication/239084542_Evaluation_of_Image_Pre-Processing_Techniques_for_Eigenface_Based_Face_Recognition
 
-CLAHE_CLIP_LIMIT = 4.0
-CLAHE_TILE_GRID_SIZE = (8, 8)
-
 class FacePreprocessor:
   #Initialize parameters and face recognizers
-  def __init__(self, landmark_dat, left_eye_pos=(0.3, 0.3), 
-                  width=300, height=300):
+  def __init__(self, landmark_dat, left_eye_pos=(0.32, 0.32), 
+                  width=300, height=300, clahe_clip_limit=2.0,
+                  clahe_tile_grid_size=(8, 8)):
     self.left_eye_position = left_eye_pos
     self.width = width
     self.height = height
+    self.clahe_clip_limit = clahe_clip_limit
+    self.clahe_tile_grid_size = clahe_tile_grid_size
 
     #For face detection and alignment
     self.detector = dlib.get_frontal_face_detector()
     self.predictor = dlib.shape_predictor(landmark_dat)
-    
+
     #For normalizing brightness
-    self.clahe = cv2.createCLAHE(clipLimit=CLAHE_CLIP_LIMIT,
-                                 tileGridSize=CLAHE_TILE_GRID_SIZE)
-
-
+    self.clahe = cv2.createCLAHE(clipLimit=self.clahe_clip_limit,
+                                 tileGridSize=self.clahe_tile_grid_size)
 
 
   def crop_and_align(self, image_color):
@@ -90,9 +89,8 @@ class FacePreprocessor:
   #Turn image to gray (do nothing if already gray)
   def rgb_to_gray(self, image_color):
     if image_color.ndim == 2:
-      warnings.warning('Image was not RGB; \
-                        returning the same image',
-                        UserWarning)
+      warnings.warn(\
+        'Image was not RGB; returning the same image', UserWarning)
 
       return image_color
 
@@ -104,5 +102,43 @@ class FacePreprocessor:
     image_gray = self.rgb_to_gray(image_color)
     return self.clahe.apply(image_gray)
 
-  def apply_smoothing(self, image_color):
-    
+  #Smooth out using gaussian blur
+  def apply_smoothing(self, image, size=(5, 5), 
+                        sig_x=0, sig_y=0):
+    image_smoothed = cv2.GaussianBlur(image, size, 
+                                      sig_x, sig_y)
+    return image_smoothed
+
+  #Canny edge detection
+  def apply_canny(self, image, min_val=100, max_val=200):
+    image_edges = cv2.Canny(image, min_val, max_val)
+    return image_edges
+  
+
+  #Create a lookup table for gamma correction
+  #Note: formula for gamma correction is 
+  # (image/255 * 1/gamma) * 255
+  def build_gamma_table(self, gamma=1.5):
+    invGamma = 1.0 / gamma
+    self.gamma_table = np.array([((i / 255.0) ** invGamma) * 255
+      for i in np.arange(0, 256)]).astype("uint8")
+   
+  #Apply gamma correction (does this actually do anything...?)
+  def apply_gamma_correction(self, image):
+    try:
+      self.gamma_table
+    except:
+      warnings.warn('No gamma table was created. \
+        Creating one with default gamma value 1.5', UserWarning)
+
+      self.build_gamma_table()
+
+    image_gamma = cv2.LUT(image, self.gamma_table)
+    return image_gamma
+
+  def apply_dog(self, image, size1=(3,3), sig_x1=0, sig_y1=0,
+                size2=(5,5), sig_x2=0, sig_y2=0):
+    g1 = cv2.GaussianBlur(image, size1, sig_x1, sig_y1)
+    g2 = cv2.GaussianBlur(image, size2, sig_x2, sig_y2)
+    image_dog = g1-g2
+    return image_dog
