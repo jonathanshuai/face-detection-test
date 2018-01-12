@@ -12,10 +12,15 @@ import dlib
 #https://www.researchgate.net/publication/239084542_Evaluation_of_Image_Pre-Processing_Techniques_for_Eigenface_Based_Face_Recognition
 
 
-#face landmar indices to align the inner eyes and the bottom of the lip
+#face landmark indices to align the inner eyes and the bottom of the lip
 LEFT_INNER_EYE = 39
 RIGHT_INNER_EYE = 42
 BOTTOM_LIP = 57
+
+#
+LEFT_OUTER_EYE = 36
+RIGHT_OUTER_EYE = 45 
+NOSE = 33
 
 #Note: Increasing left_eye_pos will "zoom out" on the face, whereas 
 #increasing lip_pos will "squeeze" the face vertically
@@ -32,61 +37,66 @@ class FacePreprocessor:
     self.detector = dlib.get_frontal_face_detector()
     self.predictor = dlib.shape_predictor(landmark_dat)
 
-  def crop_and_align(self, image_color):
+  def crop_and_align(self, image_color, get_one=True):
     if image_color.ndim != 3:
       raise ValueError('Image format incorrect (was not RGB)')
 
     #Detect face using dlib's face detector
-    faces = self.detector(image_color, 2)
+    faces = self.detector(image_color, 1)
     if not faces:
       return None
 
-    #Get the largest face
-    sizes = [rect.width() * rect.height() for rect in faces]
-    face = faces[int(np.argmax(sizes))]
-
-    shape = self.predictor(image_color, face)
-    landmarks = face_utils.shape_to_np(shape)
-   
-    #Get the coords points for eyes and lips
-    left_eye_center = landmarks[39]
-    right_eye_center = landmarks[42]
-    lip_center = landmarks[57]
-
-    #Find the offest from center of picture, and the 
-    #(0, 0) anchor position relative to the unscaled image
-    offset_x = self.left_eye_position[0] * self.width
-    offset_y = self.left_eye_position[1] * self.height
-    anchor_x = left_eye_center[0] - offset_x 
-    anchor_y = left_eye_center[1] - offset_y
-      
-    #Calculate the scaled points relative to unscaled image
-    scaled_left_eye = [self.left_eye_position[0] * self.width + anchor_x, 
-                        self.left_eye_position[1] * self.height + anchor_y]
-      
-    scaled_right_eye = [(1 - self.left_eye_position[0]) * self.width + anchor_x, 
-                        (self.left_eye_position[1]) * self.height + anchor_y]
-      
-    scaled_lip= [self.lip_position[0] * self.width + anchor_x,
-                  self.lip_position[1] * self.height + anchor_y]
-
-    src_triangle = np.float32([left_eye_center, right_eye_center, lip_center])
-    scaled_triangle = np.float32([scaled_left_eye, scaled_right_eye, scaled_lip])
-
-    #Get transformation matrix based off the 3 points
-    M = cv2.getAffineTransform(src_triangle, scaled_triangle)
-
-    #Change the transformation matrix to start at left eye
-    M[0, 2] -= left_eye_center[0]
-    M[1, 2] -= left_eye_center[1]
-    #Then, add the offset to include the rest of the face 
-    M[0, 2] += offset_x
-    M[1, 2] += offset_y
-
-    image_cropped = cv2.warpAffine(image_color, M, (self.width, self.height))
-  
-    return image_cropped
+    if get_one:
+      #Get the largest face
+      sizes = [rect.width() * rect.height() for rect in faces]
+      faces = [faces[int(np.argmax(sizes))]]
     
+    cropped_faces = []
+    for face in faces:
+      shape = self.predictor(image_color, face)
+      landmarks = face_utils.shape_to_np(shape)
+     
+      #Get the coords points for eyes and lips
+      left_eye_center = landmarks[39]
+      right_eye_center = landmarks[42]
+      lip_center = landmarks[57]
+
+      #Find the offest from center of picture, and the 
+      #(0, 0) anchor position relative to the unscaled image
+      offset_x = self.left_eye_position[0] * self.width
+      offset_y = self.left_eye_position[1] * self.height
+      anchor_x = left_eye_center[0] - offset_x 
+      anchor_y = left_eye_center[1] - offset_y
+        
+      #Calculate the scaled points relative to unscaled image
+      scaled_left_eye = [self.left_eye_position[0] * self.width + anchor_x, 
+                          self.left_eye_position[1] * self.height + anchor_y]
+        
+      scaled_right_eye = [(1 - self.left_eye_position[0]) * self.width + anchor_x, 
+                          (self.left_eye_position[1]) * self.height + anchor_y]
+        
+      scaled_lip= [self.lip_position[0] * self.width + anchor_x,
+                    self.lip_position[1] * self.height + anchor_y]
+
+      src_triangle = np.float32([left_eye_center, right_eye_center, lip_center])
+      scaled_triangle = np.float32([scaled_left_eye, scaled_right_eye, scaled_lip])
+
+      #Get transformation matrix based off the 3 points
+      M = cv2.getAffineTransform(src_triangle, scaled_triangle)
+
+      #Change the transformation matrix to start at left eye
+      M[0, 2] -= left_eye_center[0]
+      M[1, 2] -= left_eye_center[1]
+      #Then, add the offset to include the rest of the face 
+      M[0, 2] += offset_x
+      M[1, 2] += offset_y
+
+      image_cropped = cv2.warpAffine(image_color, M, (self.width, self.height))
+      
+      cropped_faces.append(image_cropped)
+
+    return cropped_faces
+      
 
   #Turn image to gray (do nothing if already gray)
   def rgb_to_gray(self, image_color):

@@ -32,8 +32,7 @@ face_landmark_dat = "./models/shape_predictor_68_face_landmarks.dat"
 df = pd.read_csv(csv_file)
 
 parameters = {'landmark_dat': face_landmark_dat, 
-'left_eye_pos': (0.3, 0.3), 'width': 300, 'height': 300,
-'clahe_clip_limit': 2.0, 'clahe_tile_grid_size': (8, 8)}
+'left_eye_pos': (0.3, 0.3), 'width': 300, 'height': 300}
 
 fp = FacePreprocessor(**parameters)
 
