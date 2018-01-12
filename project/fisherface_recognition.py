@@ -26,7 +26,7 @@ from FacePreprocessor import FacePreprocessor
 
 #Define some filenames and constants
 csv_file = "data.csv"
-face_landmark_dat = "./sets/shape_predictor_68_face_landmarks.dat"
+face_landmark_dat = "./models/shape_predictor_68_face_landmarks.dat"
 
 jisoo_id = "js"
 seolhyun_id = "sh"
@@ -41,12 +41,11 @@ df = pd.read_csv(csv_file)
 #df = df.loc[(df['id'] == jisoo_id)].head(4)
 #df = df.loc[(df['id'] == seolhyun_id)]
 #df = df.loc[(df['path'] == './images/jisoo/jisoo13.jpg')]
-#df = df.loc[(df['id'] == jisoo_id) | (df['id'] == iu_id)]
-df = df.loc[(df['id'] == mf_id) | (df['id'] == iu_id)]
+df = df.loc[(df['id'] == jisoo_id) | (df['id'] == iu_id)]
+#df = df.loc[(df['id'] == mf_id) | (df['id'] == iu_id)]
 
 parameters = {'landmark_dat': face_landmark_dat, 
-'left_eye_pos': (0.34, 0.34), 'width': 300, 'height': 300,
-'clahe_clip_limit': 2.0, 'clahe_tile_grid_size': (8, 8)}
+'left_eye_pos': (0.37, 0.37), 'lip_pos': 0.82, 'width': 300, 'height': 300}
 
 fp = FacePreprocessor(**parameters)
 
@@ -78,9 +77,9 @@ for index, row in df.iterrows():
     #cv2.imshow(row['path'], image_color)
     #cv2.waitKey(0)
     #cv2.destroyAllWindows()
-    #cv2.imshow("image_smoothed", image_cropped)
-    #cv2.waitKey(0)
-    #cv2.destroyAllWindows()
+    cv2.imshow("image_smoothed", image_cropped)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
 #Facial Recoginition 
 #Create our X and y dataset

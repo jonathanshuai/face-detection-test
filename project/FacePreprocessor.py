@@ -6,85 +6,87 @@ import cv2
 import imutils
 from imutils import face_utils
 import dlib
-import openface
 
 #Sources:
 #https://www.pyimagesearch.com/2017/04/03/facial-landmarks-dlib-opencv-python/
 #https://www.researchgate.net/publication/239084542_Evaluation_of_Image_Pre-Processing_Techniques_for_Eigenface_Based_Face_Recognition
 
+
+#face landmar indices to align the inner eyes and the bottom of the lip
+LEFT_INNER_EYE = 39
+RIGHT_INNER_EYE = 42
+BOTTOM_LIP = 57
+
+#Note: Increasing left_eye_pos will "zoom out" on the face, whereas 
+#increasing lip_pos will "squeeze" the face vertically
 class FacePreprocessor:
   #Initialize parameters and face recognizers
-  def __init__(self, landmark_dat, left_eye_pos=(0.32, 0.32), 
-                  width=300, height=300, clahe_clip_limit=2.0,
-                  clahe_tile_grid_size=(8, 8)):
+  def __init__(self, landmark_dat, left_eye_pos=(0.37, 0.37), lip_pos=0.82,
+                  width=200, height=200):
     self.left_eye_position = left_eye_pos
+    self.lip_position = (0.5, lip_pos)
     self.width = width
     self.height = height
-    self.clahe_clip_limit = clahe_clip_limit
-    self.clahe_tile_grid_size = clahe_tile_grid_size
 
     #For face detection and alignment
     self.detector = dlib.get_frontal_face_detector()
     self.predictor = dlib.shape_predictor(landmark_dat)
 
-    #For normalizing brightness
-    self.clahe = cv2.createCLAHE(clipLimit=self.clahe_clip_limit,
-                                 tileGridSize=self.clahe_tile_grid_size)
-
-
   def crop_and_align(self, image_color):
     if image_color.ndim != 3:
       raise ValueError('Image format incorrect (was not RGB)')
 
-    image_gray = cv2.cvtColor(image_color, cv2.COLOR_BGR2GRAY)
+    #Detect face using dlib's face detector
+    faces = self.detector(image_color, 2)
+    if not faces:
+      return None
 
-    faces = self.detector(image_gray, 0)
+    #Get the largest face
+    sizes = [rect.width() * rect.height() for rect in faces]
+    face = faces[int(np.argmax(sizes))]
 
-    cropped_images = []
-    for (i, face) in enumerate(faces):
-      # get facial landmark shapes (and turn into )
-      shape = self.predictor(image_gray, face)
-      shape = face_utils.shape_to_np(shape)
-     
-      #Get the eye centers
-      (left_start, left_end) = face_utils.FACIAL_LANDMARKS_IDXS["left_eye"]
-      (right_start, right_end) = face_utils.FACIAL_LANDMARKS_IDXS["right_eye"]
+    shape = self.predictor(image_color, face)
+    landmarks = face_utils.shape_to_np(shape)
+   
+    #Get the coords points for eyes and lips
+    left_eye_center = landmarks[39]
+    right_eye_center = landmarks[42]
+    lip_center = landmarks[57]
 
-      left_eye_points = shape[left_start:left_end]
-      right_eye_points = shape[right_start:right_end]
+    #Find the offest from center of picture, and the 
+    #(0, 0) anchor position relative to the unscaled image
+    offset_x = self.left_eye_position[0] * self.width
+    offset_y = self.left_eye_position[1] * self.height
+    anchor_x = left_eye_center[0] - offset_x 
+    anchor_y = left_eye_center[1] - offset_y
+      
+    #Calculate the scaled points relative to unscaled image
+    scaled_left_eye = [self.left_eye_position[0] * self.width + anchor_x, 
+                        self.left_eye_position[1] * self.height + anchor_y]
+      
+    scaled_right_eye = [(1 - self.left_eye_position[0]) * self.width + anchor_x, 
+                        (self.left_eye_position[1]) * self.height + anchor_y]
+      
+    scaled_lip= [self.lip_position[0] * self.width + anchor_x,
+                  self.lip_position[1] * self.height + anchor_y]
 
-      left_eye_center = left_eye_points.mean(axis=0).astype("int")
-      right_eye_center = right_eye_points.mean(axis=0).astype("int")
+    src_triangle = np.float32([left_eye_center, right_eye_center, lip_center])
+    scaled_triangle = np.float32([scaled_left_eye, scaled_right_eye, scaled_lip])
 
-      #Find the angle between the eyes
-      dX = right_eye_center[0] - left_eye_center[0]
-      dY = right_eye_center[1] - left_eye_center[1]
-      angle = np.degrees(np.arctan2(dY, dX)) - 180
+    #Get transformation matrix based off the 3 points
+    M = cv2.getAffineTransform(src_triangle, scaled_triangle)
 
-      #Find the scaling factor (scaled distance / actual distance between eyes)
-      right_eye_x = 1.0 - self.left_eye_position[0]
-      scaled_distance = self.width * (right_eye_x - self.left_eye_position[0])
-      actual_distance = np.sqrt(dX ** 2 + dY ** 2)
-      scale = scaled_distance / actual_distance
+    #Change the transformation matrix to start at left eye
+    M[0, 2] -= left_eye_center[0]
+    M[1, 2] -= left_eye_center[1]
+    #Then, add the offset to include the rest of the face 
+    M[0, 2] += offset_x
+    M[1, 2] += offset_y
 
-      #Midpoint between eyes
-      eye_midpoint = ((right_eye_center[0] + left_eye_center[0]) // 2, 
-                      (right_eye_center[1] + left_eye_center[1]) // 2)
-
-      #Get rotation matrix (rotate about eye_midpoint)
-      M = cv2.getRotationMatrix2D(eye_midpoint, angle, scale)
-      #make photo top left corner starts at eye_midpoint
-      M[0, 2] -= eye_midpoint[0]
-      M[1, 2] -= eye_midpoint[1]
-      #then, add the offset to include the rest of the face 
-      M[0, 2] += self.width * 0.5
-      M[1, 2] += self.height * self.left_eye_position[1]
-
-      image_cropped = cv2.warpAffine(image_color, M, (self.width, self.height))
-      cropped_images.append(image_cropped)
-
-    return cropped_images
-
+    image_cropped = cv2.warpAffine(image_color, M, (self.width, self.height))
+  
+    return image_cropped
+    
 
   #Turn image to gray (do nothing if already gray)
   def rgb_to_gray(self, image_color):
@@ -97,9 +99,23 @@ class FacePreprocessor:
     image_gray = cv2.cvtColor(image_color, cv2.COLOR_BGR2GRAY)
     return image_gray
 
+
+  def create_clahe(self, clahe_clip_limit=2.0,
+                  clahe_tile_grid_size=(8, 8)):
+    #For normalizing brightness
+    self.clahe = cv2.createCLAHE(clipLimit=self.clahe_clip_limit,
+                                 tileGridSize=self.clahe_tile_grid_size)
+
   #To normalize areas with high brightness 
   def apply_clahe(self, image_color):
     image_gray = self.rgb_to_gray(image_color)
+    try:
+      self.clahe
+    except:
+      warnings.warn(\
+        'No CLAHE was created. Creating one with default parameters', UserWarning)
+      self.create_clahe
+
     return self.clahe.apply(image_gray)
 
   #Smooth out using gaussian blur

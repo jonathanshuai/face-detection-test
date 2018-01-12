@@ -26,21 +26,10 @@ from FacePreprocessor import FacePreprocessor
 
 #Define some filenames and constants
 csv_file = "data.csv"
-face_landmark_dat = "./sets/shape_predictor_68_face_landmarks.dat"
-
-jisoo_id = "js"
-seolhyun_id = "sh"
-iu_id = "iu"
+face_landmark_dat = "./models/shape_predictor_68_face_landmarks.dat"
 
 #Read in the data to a pandas dataframe
 df = pd.read_csv(csv_file)
-
-#Get only Jisoo and Seolhyun images
-#df = df.loc[(df['id'] == jisoo_id) | (df['id'] == seolhyun_id)]
-#df = df.loc[(df['id'] == jisoo_id)].head(4)
-#df = df.loc[(df['id'] == seolhyun_id)]
-#df = df.loc[(df['path'] == './images/jisoo/jisoo13.jpg')]
-df = df.loc[(df['id'] == jisoo_id) | (df['id'] == iu_id)]
 
 parameters = {'landmark_dat': face_landmark_dat, 
 'left_eye_pos': (0.3, 0.3), 'width': 300, 'height': 300,

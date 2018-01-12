@@ -59,10 +59,10 @@ def point_angle_line(x, y, theta, low, high):
 
 #Define some filenames and constants
 csv_file = "data.csv"
-lbp_xml = "./sets/lbpcascade_frontalface_improved.xml"
-eye_xml = "./sets/haarcascade_eye.xml"
-left_eye_xml = "./sets/haarcascade_lefteye_2splits.xml"
-right_eye_xml = "./sets/haarcascade_righteye_2splits.xml"
+lbp_xml = "./models/lbpcascade_frontalface_improved.xml"
+eye_xml = "./models/haarcascade_eye.xml"
+left_eye_xml = "./models/haarcascade_lefteye_2splits.xml"
+right_eye_xml = "./models/haarcascade_righteye_2splits.xml"
 CROP_SIZE = 160
 
 jisoo_id = "js"
