@@ -27,7 +27,7 @@ LIP = 0
 NOSE = 1
 
 #Default values for scaling
-DEFAULT_SCALING = [((0.37, 0.37), 0.82), ((0.20, 0.165), 0.52)]
+DEFAULT_SCALING = [((0.37, 0.37), 0.82), ((0.20, 0.167), 0.52)]
 ALIGNMENT_POINTS = [(LEFT_INNER_EYE, RIGHT_INNER_EYE, BOTTOM_LIP),
                     (LEFT_OUTER_EYE, RIGHT_OUTER_EYE, NOSE_TIP)]
 
@@ -63,6 +63,9 @@ class FacePreprocessor:
     self.predictor = dlib.shape_predictor(landmark_dat)
 
   def crop_and_align(self, image_color, get_one=True):
+    if image_color is None:
+      return None
+      
     if image_color.ndim != 3:
       raise ValueError('Image format incorrect (was not RGB)')
 
