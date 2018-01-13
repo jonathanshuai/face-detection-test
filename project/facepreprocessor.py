@@ -17,21 +17,46 @@ LEFT_INNER_EYE = 39
 RIGHT_INNER_EYE = 42
 BOTTOM_LIP = 57
 
-#
+#face landmark indices for outer eyes and the nose (tip)
 LEFT_OUTER_EYE = 36
 RIGHT_OUTER_EYE = 45 
-NOSE = 33
+NOSE_TIP = 33
+
+#Constants for which alignment to use; example use in __init__
+LIP = 0
+NOSE = 1
+
+#Default values for scaling
+DEFAULT_SCALING = [((0.37, 0.37), 0.82), ((0.20, 0.165), 0.52)]
+ALIGNMENT_POINTS = [(LEFT_INNER_EYE, RIGHT_INNER_EYE, BOTTOM_LIP),
+                    (LEFT_OUTER_EYE, RIGHT_OUTER_EYE, NOSE_TIP)]
+
 
 #Note: Increasing left_eye_pos will "zoom out" on the face, whereas 
 #increasing lip_pos will "squeeze" the face vertically
+#Defaults for left_eye_pos and third_pos should be good enough in most cases
 class FacePreprocessor:
   #Initialize parameters and face recognizers
-  def __init__(self, landmark_dat, left_eye_pos=(0.37, 0.37), lip_pos=0.82,
-                  width=200, height=200):
-    self.left_eye_position = left_eye_pos
-    self.lip_position = (0.5, lip_pos)
+  def __init__(self, landmark_dat, alignment=LIP, width=200, height=200,
+              left_eye_pos=None, third_pos=None):
+
+    self.alignment = alignment
     self.width = width
     self.height = height
+    
+    #Get the default scaling (based off the alignment type)
+    if left_eye_pos is None:
+      left_eye_pos = DEFAULT_SCALING[alignment][0]
+    if third_pos is None:
+      third_pos = DEFAULT_SCALING[alignment][1]
+
+    self.left_eye_position = left_eye_pos
+    self.third_position = (0.5, third_pos)
+
+    #Set the indicies based on alignment type
+    self.left_eye_index = ALIGNMENT_POINTS[alignment][0]
+    self.right_eye_index = ALIGNMENT_POINTS[alignment][1]
+    self.third_index = ALIGNMENT_POINTS[alignment][2]
 
     #For face detection and alignment
     self.detector = dlib.get_frontal_face_detector()
@@ -57,9 +82,9 @@ class FacePreprocessor:
       landmarks = face_utils.shape_to_np(shape)
      
       #Get the coords points for eyes and lips
-      left_eye_center = landmarks[39]
-      right_eye_center = landmarks[42]
-      lip_center = landmarks[57]
+      left_eye_center = landmarks[self.left_eye_index]
+      right_eye_center = landmarks[self.right_eye_index]
+      third_center = landmarks[self.third_index]
 
       #Find the offest from center of picture, and the 
       #(0, 0) anchor position relative to the unscaled image
@@ -75,11 +100,11 @@ class FacePreprocessor:
       scaled_right_eye = [(1 - self.left_eye_position[0]) * self.width + anchor_x, 
                           (self.left_eye_position[1]) * self.height + anchor_y]
         
-      scaled_lip= [self.lip_position[0] * self.width + anchor_x,
-                    self.lip_position[1] * self.height + anchor_y]
+      scaled_third= [self.third_position[0] * self.width + anchor_x,
+                    self.third_position[1] * self.height + anchor_y]
 
-      src_triangle = np.float32([left_eye_center, right_eye_center, lip_center])
-      scaled_triangle = np.float32([scaled_left_eye, scaled_right_eye, scaled_lip])
+      src_triangle = np.float32([left_eye_center, right_eye_center, third_center])
+      scaled_triangle = np.float32([scaled_left_eye, scaled_right_eye, scaled_third])
 
       #Get transformation matrix based off the 3 points
       M = cv2.getAffineTransform(src_triangle, scaled_triangle)
@@ -95,7 +120,7 @@ class FacePreprocessor:
       
       cropped_faces.append(image_cropped)
 
-    return cropped_faces
+    return faces,cropped_faces
       
 
   #Turn image to gray (do nothing if already gray)
@@ -113,8 +138,8 @@ class FacePreprocessor:
   def create_clahe(self, clahe_clip_limit=2.0,
                   clahe_tile_grid_size=(8, 8)):
     #For normalizing brightness
-    self.clahe = cv2.createCLAHE(clipLimit=self.clahe_clip_limit,
-                                 tileGridSize=self.clahe_tile_grid_size)
+    self.clahe = cv2.createCLAHE(clipLimit=clahe_clip_limit,
+                                 tileGridSize=clahe_tile_grid_size)
 
   #To normalize areas with high brightness 
   def apply_clahe(self, image_color):
@@ -124,13 +149,13 @@ class FacePreprocessor:
     except:
       warnings.warn(\
         'No CLAHE was created. Creating one with default parameters', UserWarning)
-      self.create_clahe
+      self.create_clahe()
 
     return self.clahe.apply(image_gray)
 
-  #Smooth out using gaussian blur
+  #Smooth out using gaussian blur (size and sig values from Heseltine et al.)
   def apply_smoothing(self, image, size=(5, 5), 
-                        sig_x=0, sig_y=0):
+                        sig_x=1.028, sig_y=1.028):
     image_smoothed = cv2.GaussianBlur(image, size, 
                                       sig_x, sig_y)
     return image_smoothed
@@ -162,6 +187,7 @@ class FacePreprocessor:
     image_gamma = cv2.LUT(image, self.gamma_table)
     return image_gamma
 
+  #Apply dog (difference of gaussians) 
   def apply_dog(self, image, size1=(3,3), sig_x1=0, sig_y1=0,
                 size2=(5,5), sig_x2=0, sig_y2=0):
     g1 = cv2.GaussianBlur(image, size1, sig_x1, sig_y1)

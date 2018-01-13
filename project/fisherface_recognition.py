@@ -45,7 +45,7 @@ df = df.loc[(df['id'] == jisoo_id) | (df['id'] == iu_id)]
 #df = df.loc[(df['id'] == mf_id) | (df['id'] == iu_id)]
 
 parameters = {'landmark_dat': face_landmark_dat, 
-'left_eye_pos': (0.37, 0.37), 'nose_pos': 0.82, 'width': 300, 'height': 300}
+'left_eye_pos': (0.37, 0.37), 'third_pos': 0.82, 'width': 300, 'height': 300}
 
 fp = FacePreprocessor(**parameters)
 
