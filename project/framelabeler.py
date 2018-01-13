@@ -54,8 +54,6 @@ class FrameLabeler:
     self.fp = FacePreprocessor(**self.fp_parameters)
 
   def train(self):
-
-
     if not os.path.exists(self.output_dir):
       os.makedirs(self.output_dir)
 
@@ -68,17 +66,19 @@ class FrameLabeler:
         print("Cropping and aligning image {} ...".format(input_image_file))
 
         #Crop and align the face from the image (returns just the largest)
-        _, image_cropped = self.fp.crop_and_align(image_color, get_one=True)
+        box_and_image = self.fp.crop_and_align(image_color, get_one=True)
 
         #If we couldn't find a face in the image, give a warning and continue
-        if image_cropped is None:
-          warnings.warn('No face found for {}'.format(image_path), UserWarning)
+        if box_and_image is None:
+          warnings.warn('No face found for {}'.format(input_image_file),
+                                                             UserWarning)
           continue
         else:
+          (_, image_cropped) = box_and_image
           #Since crop_and_align returns an array, get the first one
           image_cropped = image_cropped[0]
 
-        #Get/create the output directory and filename
+        #Get and create the output directory and filename
         output_image_file = os.path.join(self.output_dir, 
                               input_image_file[self.input_dir_end:])
         output_image_dir = os.path.dirname(output_image_file)
@@ -116,7 +116,7 @@ class FrameLabeler:
     #Encode our labels with LabelEncoder
     self.le = LabelEncoder()
     self.le.fit(names)
-    #n_classes = len(le.classes_)
+    self.n_classes = len(self.le.classes_)
 
     #Split into training and test sets
     X_train, X_test, y_train, y_test = train_test_split(X, y)
@@ -147,8 +147,10 @@ class FrameLabeler:
 
   #Clear!!
   def clear_directories(self):
-    shutil.rmtree(self.openface_data_dir)
-    shutil.rmtree(self.openface_outdir)
+    if os.path.exists(self.openface_data_dir):
+      shutil.rmtree(self.openface_data_dir)
+    if os.path.exists(self.openface_outdir):
+      shutil.rmtree(self.openface_outdir)
 
   #Label the frames!!
   def label_frames(self, frames):
@@ -156,18 +158,18 @@ class FrameLabeler:
     if not os.path.exists(dump_path):
       os.makedirs(dump_path)
 
-    #Keep track of the index and the boxes we've seen
+    #Keep track of the index and the boxes we've seen in each frame
     index = 0
     box_sets = []
     for frame in frames:
-      rectangles, cropped_images = self.fp.crop_and_align(frame,
-                                                          get_one=False)
+      box_and_image = self.fp.crop_and_align(frame, get_one=False)
 
       #If we couldn't find a face in the frame, continue...?
-      if cropped_images is None:
+      if box_and_image is None:
         continue
 
-      box_sets.append(rectangles)
+      (rects, cropped_images) = box_and_image
+      box_sets.append(rects)
       #Write each cropped face to the output directory
       for face in cropped_images:
         output_image_file = os.path.join(dump_path, str(index) + '.jpg')
@@ -180,17 +182,55 @@ class FrameLabeler:
                     self.openface_data_dir, self.openface_model_arg, 
                     self.openface_model])
 
+    #Get the reps and sort them (so they're in the same order)
     reps = pd.read_csv(os.path.join(self.openface_outdir, 'reps.csv'), 
                                                           header=None)
-    #Time to take a break and watch a movie. 
-    #The next step is to determine from each frame what the faces are.
-    #We can use information from the previous frame to help predict
-    #Also the same person shouldn't show up 
-    #more than once in the same frame..? (mirrors?)
-    #who is in the next frame (and vice versa).
-    #There are probably really complicated/good algorithms to improve this,
-    #but for now, we'll just use what our face recognition model tells us
-    
+    labels = pd.read_csv(os.path.join(self.openface_outdir, 'labels.csv'),
+                                                          header=None)
+    reps[-1] = labels[1]
+    reps = reps.sort_values([-1]).drop([-1], axis=1)
+    reps = np.array(reps)
 
+    #Iterate through each box_set anx frame...
+    labeled_frames = []
+    index = 0
+    for (box_set, frame) in zip(box_sets, frames):
+      if len(box_set):
+        #Optimize the predictions (see match_optimize)
+        end_index = index + len(box_set)
+        probs = self.clf.predict_proba(reps[index:end_index])
+        labels = self.match_optimal(probs)
+        #Draw the box with the label
+        for (text, box) in zip(labels, box_set):
+          x, y, w, h = box.left(), box.top(), box.width(), box.height()
+          cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 200, 0), 3)
+          cv2.putText(frame, text, (x, y),  
+                      cv2.FONT_HERSHEY_COMPLEX, 1, (0, 200, 0), 3)
+        labeled_frames.append(frame)
+        index = end_index
+      labeled_frames.append(frame)
+    assert index == len(reps)
+    return labeled_frames
 
-  #def match_highest(self, boxes, labels):
+  #Simple greedy algorithm to match each label w/ highest probability
+  #Assumption: we shouldn't have the same person more than once
+  #if rows > cols => 1 to 1 
+  def match_optimal(self, probabilities):
+    n = probabilities.shape[0]
+    labels = [-1] * n 
+    #Match highest probs first; making sure at least 1 of each class
+    for _ in range(min(n, self.n_classes)):
+      k = probabilities.max(axis=0).argmax()
+      index = probabilities[:,k].argmax() 
+      labels[index] = k
+      probabilities[index] -= 1
+      probabilities[:,k] -= 1
+
+    #Match the remainder with highest prob
+    if self.n_classes < n:
+      for index in range(n):
+        if labels[index] == -1:
+          labels[index] = probabilities[index].argmax()
+
+    return self.le.inverse_transform(labels)
+

@@ -59,13 +59,14 @@ for subdir, dirs, files in os.walk(input_dir):
     print("Cropping and aligning image {} ...".format(input_image_file))
 
     #Crop and align the face from the image (returns just ONE face (the largest))
-    _, image_cropped = fp.crop_and_align(image_color, get_one=True)
+    box_and_image = fp.crop_and_align(image_color, get_one=True)
 
     #If we couldn't find an image, give a warning and continue
-    if image_cropped is None:
+    if box_and_image is None:
       warnings.warn('No face found for {}'.format(image_path), UserWarning)
       continue
     else:
+      (_, image_cropped) = box_and_image
       #Since crop_and_align returns an array, get the first one
       image_cropped = image_cropped[0]
 
