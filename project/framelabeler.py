@@ -17,6 +17,7 @@ from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import accuracy_score
 from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC
+from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import LabelEncoder
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
@@ -45,13 +46,24 @@ class FrameLabeler:
     self.openface_data_dir = output_dir
     self.openface_model_arg = "-model"
     self.openface_model = openface_model
-    self.fp_parameters = {'landmark_dat': face_landmark_dat, 'width': 96, 
-                      'height': 96, 'alignment': facepreprocessor.NOSE}
-    self.svm_parameters = {'C': [1, 10, 1e2, 1e3, 1e4, 1e5], 
-                    'kernel': ['linear', 'rbf'], 
-                    'gamma': [1e-2, 1e-3, 1e-4],
-                    'probability': [True]}
+    self.fp_parameters = {'landmark_dat': face_landmark_dat, 'size': 96, 
+                          'alignment': facepreprocessor.NOSE}
+    #self.model_parameters = [
+    #                {'C': [1, 10, 1e2, 1e3, 1e4, 1e5], 
+    #                'kernel': ['linear'], 'probability': [True]}, 
+    #                {'C': [1, 10, 1e2, 1e3, 1e4, 1e5], 
+    #                'gamma': [1e-2, 1e-3, 1e-4],
+    #                'kernel': ['rbf'], 'probability': [True]}]
+    #self.model = SVC()
+    self.model_parameters = {'C': [1, 10, 1e2, 1e3, 1e4, 1e5], 
+                            'penalty': ['l1', 'l2']} 
+    self.model = LogisticRegression()
     self.fp = FacePreprocessor(**self.fp_parameters)
+    self.preprocess_pipeline = [self.fp.apply_clahe, 
+                                #self.fp.apply_smoothing, 
+                                self.fp.apply_gamma_correction]
+    self.preprocess_pipeline = []
+
 
   def train(self):
     if not os.path.exists(self.output_dir):
@@ -73,10 +85,14 @@ class FrameLabeler:
           warnings.warn('No face found for {}'.format(input_image_file),
                                                              UserWarning)
           continue
-        else:
-          (_, image_cropped) = box_and_image
-          #Since crop_and_align returns an array, get the first one
-          image_cropped = image_cropped[0]
+
+        (_, image_cropped) = box_and_image
+        #Since crop_and_align returns an array, get the first one
+        image_cropped = image_cropped[0]
+
+        #Preprocess 
+        for p in self.preprocess_pipeline:
+          image_cropped = p(image_cropped)
 
         #Get and create the output directory and filename
         output_image_file = os.path.join(self.output_dir, 
@@ -122,8 +138,7 @@ class FrameLabeler:
     X_train, X_test, y_train, y_test = train_test_split(X, y)
 
     #Grid search on parameters
-    svc = SVC()
-    self.clf = GridSearchCV(svc, self.svm_parameters)
+    self.clf = GridSearchCV(self.model, self.model_parameters)
     self.clf.fit(X_train, y_train)
 
     #Predict (note GridSeachCV will automatically use the best one)
@@ -171,9 +186,13 @@ class FrameLabeler:
       (rects, cropped_images) = box_and_image
       box_sets.append(rects)
       #Write each cropped face to the output directory
-      for face in cropped_images:
+      for image_cropped in cropped_images:
+        #Preprocess 
+        for p in self.preprocess_pipeline:
+          image_cropped = p(image_cropped)
+        
         output_image_file = os.path.join(dump_path, str(index) + '.jpg')
-        cv2.imwrite(output_image_file, face)
+        cv2.imwrite(output_image_file, image_cropped)
         index += 1 
   
     #Call openface lua script
@@ -191,21 +210,22 @@ class FrameLabeler:
     reps = reps.sort_values([-1]).drop([-1], axis=1)
     reps = np.array(reps)
 
-    #Iterate through each box_set anx frame...
+    probs = self.clf.predict_proba(reps)
+
+    #Iterate through each box_set and frame...
     labeled_frames = []
     index = 0
     for (box_set, frame) in zip(box_sets, frames):
       if len(box_set):
         #Optimize the predictions (see match_optimize)
         end_index = index + len(box_set)
-        probs = self.clf.predict_proba(reps[index:end_index])
-        labels = self.match_optimal(probs)
+        labels = self.match_optimal(probs[index:end_index])
         #Draw the box with the label
         for (text, box) in zip(labels, box_set):
           x, y, w, h = box.left(), box.top(), box.width(), box.height()
-          cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 200, 0), 3)
-          cv2.putText(frame, text, (x, y),  
-                      cv2.FONT_HERSHEY_COMPLEX, 1, (0, 200, 0), 3)
+          cv2.rectangle(frame, (x, y), (x+w, y+h), (255, 255, 0), 2)
+          cv2.putText(frame, text, (x, y+h),  
+                      cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 0), 2)
         labeled_frames.append(frame)
         index = end_index
       labeled_frames.append(frame)
