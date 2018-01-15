@@ -4,9 +4,12 @@ import numpy as np
 
 import cv2
 import imutils
-import openface
 from imutils import face_utils
 import dlib
+
+import openface
+import openface.helper
+from openface.data import iterImgs
 
 #Sources:
 #https://www.pyimagesearch.com/2017/04/03/facial-landmarks-dlib-opencv-python/
@@ -31,6 +34,7 @@ NOSE = 1
 ALIGNMENT_POINTS = [[LEFT_INNER_EYE, RIGHT_INNER_EYE, BOTTOM_LIP],
                     [LEFT_OUTER_EYE, RIGHT_OUTER_EYE, NOSE_TIP]]
 
+MARGIN = 0.25
 class FacePreprocessor:
   #Initialize parameters and face recognizers
   def __init__(self, landmark_dat, alignment=LIP, size=200,
@@ -48,6 +52,10 @@ class FacePreprocessor:
 
 
   def crop_and_align(self, image_color, get_one=True):
+    faces = self.crop(image_color, get_one=get_one)
+    return self.align(image_color, faces)
+
+  def crop(self, image_color, get_one=True):
     if image_color is None:
       return None
 
@@ -58,20 +66,53 @@ class FacePreprocessor:
     if not faces:
       return None
 
-    cropped_faces = []
+    if get_one:
+      #Get the largest face
+      sizes = [rect.width() * rect.height() for rect in faces]
+      faces = [faces[int(np.argmax(sizes))]]
 
+    return faces
+
+  def align(self, image_color, faces):
+    if not faces:
+      return None
+
+    cropped_faces = []
+    rects = []
     for face in faces: 
-      x, y, w, h = face.left(), face.top(), face.width(), face.height()
-      rgb = cv2.cvtColor(image_color[y:y+h, x:x+w], cv2.COLOR_BGR2RGB)
+      left, top, right, bottom = self.get_bounds(face, image_color)
+
+      crop = image_color[top:bottom, left:right]
+      rgb = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB)
+      #cv2.imshow("image", crop)
+      #cv2.waitKey(0)
+      #cv2.destroyAllWindows()
       outRgb = self.aligner.align(self.size, rgb,
                             landmarkIndices=self.alignment_indices,
                             skipMulti=False)
       if not outRgb is None:
         rgb = cv2.cvtColor(outRgb, cv2.COLOR_RGB2BGR)
         cropped_faces.append(rgb)
+        rects.append(face)
 
-    return faces, cropped_faces
-      
+      else:
+        warnings.warn("Could not align rectangle...!!", UserWarning)
+
+    if not len(rects):
+      return None
+
+    return rects, cropped_faces
+
+
+  def get_bounds(self, face, image):
+    (max_height, max_width) = image.shape[:2]
+    x_margin = int(face.width() * MARGIN)
+    y_margin = int(face.height() * MARGIN)
+    left = max(0, face.left() - x_margin)
+    top = max(0, face.top() - y_margin)
+    right = min(max_width, face.right() + x_margin)
+    bottom = min(max_height, face.bottom() + y_margin)
+    return left, top, right, bottom
 
   #Turn image to gray (do nothing if already gray)
   def bgr_to_gray(self, image_color):
@@ -85,7 +126,7 @@ class FacePreprocessor:
     return image_gray
 
 
-  def create_clahe(self, clahe_clip_limit=4.0,
+  def create_clahe(self, clahe_clip_limit=2.0,
                   clahe_tile_grid_size=(2, 2)):
     #For normalizing brightness
     self.clahe = cv2.createCLAHE(clipLimit=clahe_clip_limit,
