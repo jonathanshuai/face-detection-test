@@ -33,7 +33,8 @@ from facepreprocessor import FacePreprocessor
 
 class FrameLabeler:
   def __init__(self, face_landmark_dat, input_dir, output_dir,
-              openface_path, openface_outdir, openface_model):
+              openface_path, openface_outdir, openface_model,
+              align_type):
     self.face_landmark_dat = face_landmark_dat
     self.input_dir = input_dir
     self.output_dir = output_dir
@@ -47,7 +48,7 @@ class FrameLabeler:
     self.openface_model_arg = "-model"
     self.openface_model = openface_model
     self.fp_parameters = {'landmark_dat': face_landmark_dat, 'size': 96, 
-                          'alignment': facepreprocessor.NOSE}
+                          'alignment': align_type}
     #self.model_parameters = [
     #                {'C': [1, 10, 1e2, 1e3, 1e4, 1e5], 
     #                'kernel': ['linear'], 'probability': [True]}, 
@@ -59,10 +60,10 @@ class FrameLabeler:
                             'penalty': ['l1', 'l2']} 
     self.model = LogisticRegression()
     self.fp = FacePreprocessor(**self.fp_parameters)
-    self.preprocess_pipeline = [self.fp.apply_clahe, 
-                                #self.fp.apply_smoothing, 
-                                self.fp.apply_gamma_correction]
-    self.preprocess_pipeline = []
+    self.preprocess_pipeline = [self.fp.apply_clahe] 
+    #                            self.fp.apply_smoothing, 
+    #                            self.fp.apply_gamma_correction]
+    #self.preprocess_pipeline = []
 
 
   def train(self):
@@ -89,10 +90,12 @@ class FrameLabeler:
         (_, image_cropped) = box_and_image
         #Since crop_and_align returns an array, get the first one
         image_cropped = image_cropped[0]
-
         #Preprocess 
         for p in self.preprocess_pipeline:
           image_cropped = p(image_cropped)
+        cv2.imshow("image", image_cropped)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
         #Get and create the output directory and filename
         output_image_file = os.path.join(self.output_dir, 
@@ -181,6 +184,7 @@ class FrameLabeler:
 
       #If we couldn't find a face in the frame, continue...?
       if box_and_image is None:
+        box_sets.append([])
         continue
 
       (rects, cropped_images) = box_and_image
@@ -195,6 +199,9 @@ class FrameLabeler:
         cv2.imwrite(output_image_file, image_cropped)
         index += 1 
   
+    if index == 0:
+      return frames
+
     #Call openface lua script
     subprocess.call([self.openface_path, self.openface_outdir_arg, 
                     self.openface_outdir, self.openface_data_dir_arg, 
@@ -219,6 +226,7 @@ class FrameLabeler:
       if len(box_set):
         #Optimize the predictions (see match_optimize)
         end_index = index + len(box_set)
+        print("{}, {}".format(index, end_index))
         labels = self.match_optimal(probs[index:end_index])
         #Draw the box with the label
         for (text, box) in zip(labels, box_set):
@@ -252,5 +260,7 @@ class FrameLabeler:
         if labels[index] == -1:
           labels[index] = probabilities[index].argmax()
 
+    print(probabilities)
+    print(labels)
     return self.le.inverse_transform(labels)
 

@@ -1,5 +1,5 @@
 import cv2
-
+import facepreprocessor
 from framelabeler import FrameLabeler
 
 
@@ -12,11 +12,13 @@ output_dir = "./aligned"
 openface_path = "../building/openface/batch-represent/main.lua"
 openface_outdir = "./reps" 
 openface_model = "../building/openface/models/openface/nn4.v2.t7"
+align_type = facepreprocessor.LIP
 
 BATCH_SIZE = 100
 
 fl = FrameLabeler(face_landmark_dat, input_dir, output_dir,
-									openface_path, openface_outdir, openface_model)
+									openface_path, openface_outdir, openface_model,
+									align_type)
 fl.clear_directories()
 fl.train()
 fl.clear_directories()
@@ -46,40 +48,3 @@ while(cap.isOpened()):
 
 cap.release()
 out.release()
-
-'''
-import cv2
-import dlib
-import imutils
-from imutils import face_utils
-
-import facepreprocessor
-from facepreprocessor import FacePreprocessor
-
-face_landmark_dat = "./models/shape_predictor_68_face_landmarks.dat"
-fp = FacePreprocessor(face_landmark_dat, size=96)
-image_color = cv2.imread("./garbonzo.jpg")
-
-
-cv2.imshow("image", image_color)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
-
-_, b = fp.crop_and_align(image_color)
-
-for p in b:
-	cv2.imshow("image", p)
-	cv2.waitKey(0)
-	cv2.destroyAllWindows()
-
-
-_, image_color = fp.crop_and_align(image_color)
-image_color = image_color[0]
-image_color = fp.apply_gamma_correction(image_color)
-image_color = fp.apply_clahe(image_color)
-#image_color = fp.apply_smoothing(image_color)
-
-cv2.imshow("image", image_color)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
-'''
