@@ -14,11 +14,12 @@ face_landmark_dat = "./models/shape_predictor_68_face_landmarks.dat"
 input_dir = "./images"
 output_dir = "./video_crops"
 
-INCREMENT = 15
-NUMBER_OF_FRAMES = 100
+INCREMENT = 10
+NUMBER_OF_FRAMES = 10000
+MIN_SIZE = 80
 
 fp = FacePreprocessor(face_landmark_dat, size=96)
-cap = cv2.VideoCapture('./videos/video_cut3.mp4')
+cap = cv2.VideoCapture('./videos/best_song.mkv')
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
 
 n = 0
@@ -53,6 +54,9 @@ for frame in batch:
   boxes = fp.crop(frame, get_one=False)
   if not boxes is None:
     for box in boxes:
+      if box.width() < MIN_SIZE:
+        continue
+
       (left, top, right, bottom) = fp.get_bounds(box, frame)
       #Write the image to the designated diretory
       output_image_file = os.path.join(dump_path, str(index) + '.jpg')

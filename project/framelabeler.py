@@ -30,11 +30,10 @@ import facepreprocessor
 from facepreprocessor import FacePreprocessor
 
 
-
 class FrameLabeler:
   def __init__(self, face_landmark_dat, input_dir, output_dir,
               openface_path, openface_outdir, openface_model,
-              align_type):
+              align_type, min_size=80):
     self.face_landmark_dat = face_landmark_dat
     self.input_dir = input_dir
     self.output_dir = output_dir
@@ -49,6 +48,7 @@ class FrameLabeler:
     self.openface_model = openface_model
     self.fp_parameters = {'landmark_dat': face_landmark_dat, 'size': 96, 
                           'alignment': align_type}
+    self.min_size = min_size
     #self.model_parameters = [
     #                {'C': [1, 10, 1e2, 1e3, 1e4, 1e5], 
     #                'kernel': ['linear'], 'probability': [True]}, 
@@ -93,9 +93,9 @@ class FrameLabeler:
         #Preprocess 
         for p in self.preprocess_pipeline:
           image_cropped = p(image_cropped)
-        cv2.imshow("image", image_cropped)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        #cv2.imshow("image", image_cropped)
+        #cv2.waitKey(0)
+        #cv2.destroyAllWindows()
 
         #Get and create the output directory and filename
         output_image_file = os.path.join(self.output_dir, 
@@ -125,17 +125,16 @@ class FrameLabeler:
                                                             header=None)
 
     #Get the names of each person (by parsing the folder name)
-    names = labels.groupby(0).first()[1]
-    names = [os.path.dirname(p)[self.output_dir_end:] for p in names]
-
-    #Create the X and y of our dataset
-    X = np.array(reps)
-    y = labels[0] - 1
+    labels = [os.path.dirname(p)[self.output_dir_end:] for p in labels[1]]
 
     #Encode our labels with LabelEncoder
     self.le = LabelEncoder()
-    self.le.fit(names)
+    self.le.fit(labels)
     self.n_classes = len(self.le.classes_)
+
+    #Create the X and y of our dataset
+    X = np.array(reps)
+    y = self.le.transform(labels)
 
     #Split into training and test sets
     X_train, X_test, y_train, y_test = train_test_split(X, y)
@@ -188,16 +187,20 @@ class FrameLabeler:
         continue
 
       (rects, cropped_images) = box_and_image
-      box_sets.append(rects)
+      box_set = []
       #Write each cropped face to the output directory
-      for image_cropped in cropped_images:
-        #Preprocess 
-        for p in self.preprocess_pipeline:
-          image_cropped = p(image_cropped)
-        
-        output_image_file = os.path.join(dump_path, str(index) + '.jpg')
-        cv2.imwrite(output_image_file, image_cropped)
-        index += 1 
+      for (rect, image_cropped) in zip(rects, cropped_images):
+        if rect.width() > self.min_size:
+          #Preprocess 
+          for p in self.preprocess_pipeline:
+            image_cropped = p(image_cropped)
+          
+          output_image_file = os.path.join(dump_path, str(index) + '.jpg')
+          cv2.imwrite(output_image_file, image_cropped)
+          index += 1 
+          box_set.append(rect)
+
+      box_sets.append(box_set)
   
     if index == 0:
       return frames

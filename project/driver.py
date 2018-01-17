@@ -23,7 +23,7 @@ fl.clear_directories()
 fl.train()
 fl.clear_directories()
 
-cap = cv2.VideoCapture('./videos/video_cut3.mp4')
+cap = cv2.VideoCapture('./videos/story.mkv')
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
 out = cv2.VideoWriter('./videos/output.avi',fourcc, 35.0, (1920, 1080))
 
