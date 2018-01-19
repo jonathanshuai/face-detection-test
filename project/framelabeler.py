@@ -1,3 +1,4 @@
+#Simple class to train on faces, and 
 import os
 import shutil
 import subprocess
@@ -20,6 +21,8 @@ from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import LabelEncoder
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.neighbors import KNeighborsClassifier
+
 
 import cv2
 import dlib
@@ -34,21 +37,21 @@ class FrameLabeler:
   def __init__(self, face_landmark_dat, input_dir, output_dir,
               openface_path, openface_outdir, openface_model,
               align_type, min_size=80):
-    self.face_landmark_dat = face_landmark_dat
-    self.input_dir = input_dir
-    self.output_dir = output_dir
-    self.output_dir_end = len(output_dir) + 1
+    self.face_landmark_dat = face_landmark_dat #path to landmark.dat that dlib uses for landmark detection
+    self.input_dir = input_dir #input training images directory
+    self.output_dir = output_dir #output for cropping faces
+    self.output_dir_end = len(output_dir) + 1 
     self.input_dir_end = len(input_dir) + 1
-    self.openface_path = openface_path
-    self.openface_outdir_arg = "-outDir"
-    self.openface_outdir = openface_outdir
+    self.openface_path = openface_path #path to openface lua script
+    self.openface_outdir_arg = "-outDir" 
+    self.openface_outdir = openface_outdir #path for openface to write representations to
     self.openface_data_dir_arg = "-data" 
-    self.openface_data_dir = output_dir
+    self.openface_data_dir = output_dir #path for openface to read cropped face images from
     self.openface_model_arg = "-model"
-    self.openface_model = openface_model
+    self.openface_model = openface_model #path to openface nn model
     self.fp_parameters = {'landmark_dat': face_landmark_dat, 'size': 96, 
                           'alignment': align_type}
-    self.min_size = min_size
+    self.min_size = min_size #minimum size of a face 
     #self.model_parameters = [
     #                {'C': [1, 10, 1e2, 1e3, 1e4, 1e5], 
     #                'kernel': ['linear'], 'probability': [True]}, 
@@ -59,6 +62,8 @@ class FrameLabeler:
     self.model_parameters = {'C': [1, 10, 1e2, 1e3, 1e4, 1e5], 
                             'penalty': ['l1', 'l2']} 
     self.model = LogisticRegression()
+    #self.model_parameters = {'n_neighbors': [1, 3, 5, 7]}
+    #self.model = KNeighborsClassifier()
     self.fp = FacePreprocessor(**self.fp_parameters)
     self.preprocess_pipeline = [self.fp.apply_clahe] 
     #                            self.fp.apply_smoothing, 
@@ -220,7 +225,7 @@ class FrameLabeler:
     reps = reps.sort_values([-1]).drop([-1], axis=1)
     reps = np.array(reps)
 
-    probs = self.clf.predict_proba(reps)
+    predictions = self.le.inverse_transform(self.clf.predict(reps))
 
     #Iterate through each box_set and frame...
     labeled_frames = []
@@ -229,8 +234,7 @@ class FrameLabeler:
       if len(box_set):
         #Optimize the predictions (see match_optimize)
         end_index = index + len(box_set)
-        print("{}, {}".format(index, end_index))
-        labels = self.match_optimal(probs[index:end_index])
+        labels = predictions[index:end_index]
         #Draw the box with the label
         for (text, box) in zip(labels, box_set):
           x, y, w, h = box.left(), box.top(), box.width(), box.height()
@@ -246,6 +250,7 @@ class FrameLabeler:
   #Simple greedy algorithm to match each label w/ highest probability
   #Assumption: we shouldn't have the same person more than once
   #if rows > cols => 1 to 1 
+  #Decided not to use this because it is WEIRD!! (also doesn't work well with KNN and SVM)
   def match_optimal(self, probabilities):
     n = probabilities.shape[0]
     labels = [-1] * n 

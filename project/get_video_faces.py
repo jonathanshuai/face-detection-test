@@ -19,7 +19,7 @@ NUMBER_OF_FRAMES = 10000
 MIN_SIZE = 80
 
 fp = FacePreprocessor(face_landmark_dat, size=96)
-cap = cv2.VideoCapture('./videos/best_song.mkv')
+cap = cv2.VideoCapture('./videos/stay.mp4')
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
 
 n = 0
@@ -59,6 +59,6 @@ for frame in batch:
 
       (left, top, right, bottom) = fp.get_bounds(box, frame)
       #Write the image to the designated diretory
-      output_image_file = os.path.join(dump_path, str(index) + '.jpg')
+      output_image_file = os.path.join(dump_path, str(index) + 'a.jpg')
       cv2.imwrite(output_image_file, frame[top:bottom, left:right])
       index += 1

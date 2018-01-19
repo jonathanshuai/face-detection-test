@@ -15,9 +15,6 @@ from openface.data import iterImgs
 #https://www.pyimagesearch.com/2017/04/03/facial-landmarks-dlib-opencv-python/
 #https://www.researchgate.net/publication/239084542_Evaluation_of_Image_Pre-Processing_Techniques_for_Eigenface_Based_Face_Recognition
 
-#Note: Increasing left_eye_pos will "zoom out" on the face, whereas 
-#increasing lip_pos will "squeeze" the face vertically
-#Defaults for left_eye_pos and third_pos should be good enough in most cases
 #face landmark indices to align the inner eyes and the bottom of the lip
 LEFT_INNER_EYE = 39
 RIGHT_INNER_EYE = 42
@@ -28,33 +25,34 @@ LEFT_OUTER_EYE = 36
 RIGHT_OUTER_EYE = 45 
 NOSE_TIP = 33
 
+#Index of the alignment points
 LIP = 0
 NOSE = 1
 
+#Points to align the face on 
 ALIGNMENT_POINTS = [[LEFT_INNER_EYE, RIGHT_INNER_EYE, BOTTOM_LIP],
                     [LEFT_OUTER_EYE, RIGHT_OUTER_EYE, NOSE_TIP]]
 
-MARGIN = 0.25
+MARGIN = 0.25 #Used to put space around the face crop
 class FacePreprocessor:
   #Initialize parameters and face recognizers
-  def __init__(self, landmark_dat, alignment=LIP, size=200,
-              left_eye_pos=None, third_pos=None):
-
+  def __init__(self, landmark_dat, alignment=LIP, size=200):
     self.alignment = alignment
     self.size = size
     
     #Set the indicies based on alignment type
     self.alignment_indices = ALIGNMENT_POINTS[alignment]
 
-    #For face detection and alignment
+    #For face detection and alignment (uses openface's AlignDlib)
     self.detector = dlib.get_frontal_face_detector()
     self.aligner = openface.AlignDlib(landmark_dat)
 
-
+  #Crop and align a face
   def crop_and_align(self, image_color, get_one=True):
     faces = self.crop(image_color, get_one=get_one)
     return self.align(image_color, faces)
 
+  #Crop the face
   def crop(self, image_color, get_one=True):
     if image_color is None:
       return None
@@ -73,12 +71,15 @@ class FacePreprocessor:
 
     return faces
 
+  #Align the face
   def align(self, image_color, faces):
     if not faces:
       return None
 
     cropped_faces = []
     rects = []
+    #Since openface's AlignDlib only crops one face, I cropped each face
+    #and ran the aligner on each crop.
     for face in faces: 
       left, top, right, bottom = self.get_bounds(face, image_color)
 
@@ -103,7 +104,7 @@ class FacePreprocessor:
 
     return rects, cropped_faces
 
-
+  #Get bounds for the face crop (just makes sure it doesn't go out of the image bounds)
   def get_bounds(self, face, image):
     (max_height, max_width) = image.shape[:2]
     x_margin = int(face.width() * MARGIN)
@@ -126,6 +127,7 @@ class FacePreprocessor:
     return image_gray
 
 
+  #Create the clahe object
   def create_clahe(self, clahe_clip_limit=2.0,
                   clahe_tile_grid_size=(2, 2)):
     #For normalizing brightness
@@ -166,7 +168,6 @@ class FacePreprocessor:
   def apply_canny(self, image, min_val=100, max_val=200):
     image_edges = cv2.Canny(image, min_val, max_val)
     return image_edges
-  
 
   #Create a lookup table for gamma correction
   #Note: formula for gamma correction is 
