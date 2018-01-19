@@ -1,4 +1,12 @@
 **/korean-faces
-**/project/images
 **/building
 *.pyc
+**/backup
+**/reps
+**/aligned
+**/__pycache__
+garbonzo.jpg
+dog.jpg
+**/video_crops
+**/videos
+**/images
