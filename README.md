@@ -1,4 +1,4 @@
-### Notes
+## Notes
 This repo was an exploration with face detection and recognition. I started using OpenCV’s implementation of face detection using Haar Cascades and [Viola-Jones](https://sites.google.com/site/5kk73gpu2012/assignment/viola-jones-face-detection#TOC-Image-Pyramid) facial detection algorithm. After detecting and cropping the faces, I tried to train a classifier based on the eigenface model (using PCA and SVM) to recognize faces in a testing set. After aligning the face (using [dlib](https://github.com/davisking/dlib)’s facial landmark predictor) and preprocessing (applying smoothing and other techniques mentioned [in this paper](https://www.researchgate.net/publication/239084542_Evaluation_of_Image_Pre-Processing_Techniques_for_Eigenface_Based_Face_Recognition) by Heseltine from the University of New York). I got an okay accuracy with this model, ~70%-80%. 
 
 I put the old files for eigen face, fisher face, and the face preprocessor in the old_files directory.
@@ -22,12 +22,12 @@ I also tried a more challenging music video from a Korean girl group. The classi
 
 As a side note, at first, I built the training set by hand by searching through Google images. But I found that a better way was to get train on faces from other music videos. I wrote a simple get_video_faces.py that will crop out faces from each frame of a video; making it much faster to get a large number of faces with different facial expressions
 
-# Good things:
+### Good things:
 
 * Performed well on 'good' pictures (high quality face shots) ~90-95% accuracy on training sets.
 * Better than humans for some sets (I'll update to explain this more soon)
 
-# Problems:
+### Problems:
 
 * I just used the pipeline that openface provides for classification; but this is slow because it involves writing each face to disk. 
 * For labeling faces on music videos, the flickering of the label boxes is not smooth and looks choppy. Doesn't perform well when images are small or blurred.
