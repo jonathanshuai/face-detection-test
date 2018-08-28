@@ -16,19 +16,12 @@ It worked well, but sometimes it seemed to get really confused (jumping between 
 ![alt text](https://raw.githubusercontent.com/jonathanshuai/face-detection-test/master/project/records/29.jpg?token=AK2CHjg4Xa7_X8QGNVdcQ6Y3xsWHfSdyks5aat0RwA%3D%3D)
 
 This could probably be improved by some kind of smoothing algorithm (maybe voting on the faces for some window of frames?)
-I also tried a more challenging music video from a Korean girl group. The classifier seemed to do much worse on this video. The faces are harder to distinguish and the different makeups probably confused the classifier.
 
-![alt text](https://github.com/jonathanshuai/face-detection-test/blob/master/project/records/last.gif?raw=true)
 
 As a side note, at first, I built the training set by hand by searching through Google images. But I found that a better way was to get train on faces from other music videos. I wrote a simple get_video_faces.py that will crop out faces from each frame of a video; making it much faster to get a large number of faces with different facial expressions
 
-### Good things:
-
 * Performed well on 'good' pictures (high quality face shots) ~90-95% accuracy on training sets.
 * Better than humans for some sets (I'll update to explain this more soon)
-
-### Problems:
-
 * I just used the pipeline that openface provides for classification; but this is slow because it involves writing each face to disk. 
 * For labeling faces on music videos, the flickering of the label boxes is not smooth and looks choppy. Doesn't perform well when images are small or blurred.
 

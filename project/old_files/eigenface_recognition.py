@@ -26,7 +26,7 @@ from FacePreprocessor import FacePreprocessor
 
 #Define some filenames and constants
 csv_file = "data.csv"
-face_landmark_dat = "./models/shape_predictor_68_face_landmarks.dat"
+face_landmark_dat = "../models/shape_predictor_68_face_landmarks.dat"
 
 #Read in the data to a pandas dataframe
 df = pd.read_csv(csv_file)
